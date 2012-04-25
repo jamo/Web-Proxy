@@ -1,12 +1,13 @@
 
 class ProxyController < ApplicationController
 
-  
+
+
   def proxy
-    
+
     # DIDNT WORK IN PROD
     # site_url =  request.env["REQUEST_URI"][0..request.env["REQUEST_URI"].index("/proxy")-1] # prefix i.e. "http://localhost:3000"
-    
+
     if request.env["REQUEST_URI"].index("http://localhost")
       #Developer URL
       site_url = "http://localhost:3000/proxy"
@@ -14,7 +15,7 @@ class ProxyController < ApplicationController
       #Production URL
       site_url = "http://webproxy.heroku.com/proxy"
     end
-    
+
 # INSERT START
 
 if params[:formlnk]
@@ -24,8 +25,8 @@ else
 end
 method = request.env["REQUEST_METHOD"]
 data   = request.env["RAW_POST_DATA"] #if empty add the actual querystring to data
-port   = 80               
-                    
+port   = 80
+
 # Prepend http/https protocol if not present
 if @url.index('http://') == nil and @url.index('https://') == nil
   @url = 'http://' + @url
@@ -57,7 +58,7 @@ if iOffset != nil
 else
   @geturl = @url
   @query = "" #querystring
-  path = "/" + @url[@xurl.length..@url.length]  rescue "/"         
+  path = "/" + @url[@xurl.length..@url.length]  rescue "/"
 end
 
 host = @uri.host #only domain
@@ -88,7 +89,7 @@ a = Mechanize.new { |agent|
 require 'yaml'
 begin
   if !session[:mycookies].nil? and session[:mycookies].length < 4000
-    a.cookie_jar = YAML.load(session[:mycookies]) 
+    a.cookie_jar = YAML.load(session[:mycookies])
   else
     a.cookie_jar.clear
   end
@@ -97,11 +98,11 @@ end
 
 # Page request from form
 if params[:verb]
-  
-  if params[:verb] == 'get' 
+
+  if params[:verb] == 'get'
     # puts params
     # puts @url
-    
+
     #Add a question mark to the end of the base url if one does not exist
     if @url.index('?') == nil
       @url << '?'
@@ -113,20 +114,20 @@ if params[:verb]
         @url << "&#{k}=#{v}"
       end
      end
-    
+
     begin
       a.get(@url) do |page|
-        @rawdoc =  page.body 
+        @rawdoc =  page.body
       end
     rescue
       a.cookie_jar.clear
       a.get(@url) do |page|
-        @rawdoc =  page.body 
+        @rawdoc =  page.body
       end
     end
-    
+
   else #POST
-    
+
     # page = browser.post('http://www.mysite.com/login', {
     #   "email" => "myemail%40gmail.com",
     #   "password" => "something",
@@ -134,7 +135,7 @@ if params[:verb]
     #   "loginSubmit" => "Login",
     #   "url" => ""
     # })
-    
+
       #THERE HAS GOT TO BE A BETTER WAY TO FORMAT PARAMS FOR MECHANIZE POST
       paramsstring = ""
       s = params.to_query
@@ -145,7 +146,7 @@ if params[:verb]
             paramsstring << '"' + elementarray[0] + '" => "' +  URI.unescape(elementarray[1]) + '", '
           end
       end
-      
+
       #Fix Amazon logins
       if @url.index('https://www.amazon.com/ap/sign-in')
         paramsstring << '"useRedirectOnSuccess" => "1", '
@@ -158,53 +159,53 @@ if params[:verb]
         paramsstring << '"metadata2" => "unknown", '
         paramsstring << '"metadata3" => "unknown", '
         paramsstring << '"action" => "sign-in", '
-        
+
         # paramlist = '-d "disableCorpSignUp=&x=152&y=11&mode=&useRedirectOnSuccess=1&protocol=https&referer=flex&path=/gp/yourstore&sessionId=' + params[:sessionId] + '&password=' + params[:password] + '&pageAction=/gp/yourstore&redirectProtocol=&metadataf1=&metadata2=unknown&metadata3=unknown&action=sign-in&email=' + params[:email] + '&query=signIn=1&ref_=pd_irl_gw' + '"'
         # curlverb = ''
       end
-      
-      
-                
+
+
+
       # TEST = http://www.cs.unc.edu/~jbs/resources/perl/perl-cgi/programs/form1-POST.html
-      page = a.post(@url, eval("{" + paramsstring.chop.chop + "}")) 
+      page = a.post(@url, eval("{" + paramsstring.chop.chop + "}"))
       @rawdoc = page.body
 
   end
-      
+
 else
-  
-  
+
+
   begin
-    a.get(@url) do |page| 
-      @rawdoc =  page.body 
-    end    
+    a.get(@url) do |page|
+      @rawdoc =  page.body
+    end
   rescue
     begin
       # a.cookie_jar.clear
-      a.get(@url) do |page| 
-        @rawdoc =  page.body 
-      end    
+      a.get(@url) do |page|
+        @rawdoc =  page.body
+      end
     rescue
       @rawdoc = "Page not found"
     end
   end
 
 end
-    
+
 #works to file
 # a.cookie_jar.save_as("mycookies.txt", format = :yaml )
 
 session[:mycookies] = a.cookie_jar.to_yaml rescue ""
 
-# FORMAT HTML CONTENT 
+# FORMAT HTML CONTENT
 @doc = Nokogiri::HTML(@rawdoc)
 
-# MANIPULATE HTML CONTENT A AND AREA LINKS TO PASS BACK THROUGH PROXY 
+# MANIPULATE HTML CONTENT A AND AREA LINKS TO PASS BACK THROUGH PROXY
 @doc.xpath('//a|//area').each { |a|
 
   #regular link found
   if a['href'] != nil and a['href'][0..0] != "#" # dont process for anchor tags
-    
+
     if a['href'].index('http://') == nil and a['href'].index('https://') == nil
       if a['href'] == "/"
         link = @baseurl
@@ -216,12 +217,12 @@ session[:mycookies] = a.cookie_jar.to_yaml rescue ""
         end
       end
     else
-      link = a['href']                
+      link = a['href']
     end
 
     link.gsub!("http:///", @baseurl) #added to test localhost entries
 
-    #not anchor 
+    #not anchor
     if a['href'] != nil and a['href'] != "#"
 
       link = site_url + '?lnk=' + URI.escape(link.strip)
@@ -262,7 +263,7 @@ session[:mycookies] = a.cookie_jar.to_yaml rescue ""
         # else
           a['src'] = link
         # end
-        
+
       end
     end
 }
@@ -291,15 +292,15 @@ session[:mycookies] = a.cookie_jar.to_yaml rescue ""
       link = link.strip
       # link = site_url + '?lnk=' + URI.escape(link.strip)
       a['href'] = link
-      
+
     end
-} 
+}
 
   # MANIPULATE HTML CONTENT IMAGES TO USE ACTUAL LINKS INCLUDING RELATIVE LINKS
   @doc.xpath('//form').each { |a|
 
   if a['action'] != nil
-    
+
     if a['action'].index('http://') == nil and a['action'].index('https://') == nil
       if a['action'] == "/"
         link = @baseurl
@@ -313,7 +314,7 @@ session[:mycookies] = a.cookie_jar.to_yaml rescue ""
     else
       link = a['action']
     end
-    
+
     method = a['method']
     if !method
       method = "get"
@@ -323,11 +324,11 @@ session[:mycookies] = a.cookie_jar.to_yaml rescue ""
     link.gsub!("http:///", @baseurl) #added to test localhost entries
 
     if a['action'] != nil and a['action'] != "#"
-      
+
       formaction = link.strip
       link = site_url + '?url=' + URI.escape(link.strip)
 
-      a['action'] = link     
+      a['action'] = link
 
       # Add hidden input text form with url
       lnk_node = Nokogiri::XML::Node.new('input', a)
@@ -348,16 +349,16 @@ session[:mycookies] = a.cookie_jar.to_yaml rescue ""
 }
 
 ##FINAL MISC CLEANUP
-@finaldoc = @doc.to_s 
-    
+@finaldoc = @doc.to_s
+
 # #Check for any links that may be hiding in javascripts
 @finaldoc.gsub("href='/", "href='" + site_url + "?url=" + @baseurl + "/")
-# 
+#
 # #prepend baseurl on src tags in javascript
- @finaldoc = @finaldoc.gsub('src="/', 'src="' + @baseurl + '/' ) 
-# 
+ @finaldoc = @finaldoc.gsub('src="/', 'src="' + @baseurl + '/' )
+#
 # #Why does Amazon care about Firefox browsers?
- @finaldoc = @finaldoc.gsub('Firefox', 'FirefoxWTF' ) 
+ @finaldoc = @finaldoc.gsub('Firefox', 'FirefoxWTF' )
 
 # FIX JAVASCRIPT RELEATIVE URLS
 @finaldoc = @finaldoc.gsub("script('/", "script('" + @baseurl + '/')
@@ -367,20 +368,20 @@ session[:mycookies] = a.cookie_jar.to_yaml rescue ""
 # #Hack to remove double wacks in URL ie http://sunsounds.org//audio//programs
 # @finaldoc.gsub!("://", "/::")
 # @finaldoc.gsub!("//", "/")
-# @finaldoc.gsub!("/::", "://")         
+# @finaldoc.gsub!("/::", "://")
 
 #Add baseURL to code within embedded styles
- @finaldoc = @finaldoc.gsub("url(/", "url(" + @baseurl + '/')  
+ @finaldoc = @finaldoc.gsub("url(/", "url(" + @baseurl + '/')
 
 #Remove frame breaking javascript
- @finaldoc = @finaldoc.gsub(".location.replace", "") 
+ @finaldoc = @finaldoc.gsub(".location.replace", "")
 
 #Remove special characters (diamond question marks)
  cleaned = ""
  @finaldoc.each_byte { |x|  cleaned << x unless x > 127   }
  @finaldoc = cleaned
- 
- 
+
+
 # INSERT END
 
     render :layout => false
