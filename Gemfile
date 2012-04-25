@@ -9,16 +9,17 @@ group :assets do
   gem 'sass-rails', "~> 3.1.1"
   gem 'coffee-rails', "~> 3.1.1"
   gem 'uglifier'
+  gem 'therubyracer', :platforms => :ruby
 end
 gem 'jquery-rails'
 
 group :deployment do
-	gem 'mysql2'
-end 
+        gem 'sqlite3'
+end
 
 group :production do
-	gem 'pg'
-end 
+        gem 'pg'
+end
 
 # Use unicorn as the web server
 # gem 'unicorn'
